@@ -1,0 +1,87 @@
+gc C:\Users.txt | %{
+    switch($_.split(",")[0])
+        {
+          
+          ##### {CREAR LAS UNIDADES ORGANIZATIVAS} #####
+          
+          "uo"{
+                
+                foreach ($elemento in gc C:\Users.txt){
+                    if ($elemento.split(",")[0] -eq "uo"){
+                       
+                           $nombreou = $elemento.split(",")[1]
+                           New-ADOrganizationalUnit -Name $nombreou -Path "DC=andel,DC=local"
+
+                    }
+                }
+
+            }
+
+           ##### {CREAR LOS USUARIOS DENTRO DE LAS UNIDADES ORGANIZATIVAS} #####
+
+          "user"{
+          
+           
+                   foreach ($elemento in gc C:\Users.txt){
+                    if ($elemento.split(",")[0] -eq "user"){
+                       
+                           $nombreuser = $elemento.split(",")[1]
+                           $nombreou2 = $elemento.split(",")[2]
+                           New-ADUser -Name $nombreuser -Path "OU=$nombreou2,DC=andel,DC=local" 
+
+                    }
+                }
+                            
+          }
+
+          ##### {CREAR LOS GRUPOS CON LOS USUARIOS Y LOS REPOSITORIOS} #####
+          
+          "group"{
+                    
+                   foreach ($elemento in gc C:\Users.txt){
+                    if ($elemento.split(",")[0] -eq "group"){
+                       
+                            $nombregroup = $elemento.split(",")[1]
+                            $nombreou3 = $elemento.split(",")[2]
+                            $nombreuser2 = $elemento.split(",")[3..5]
+                            New-ADGroup -Name $nombregroup -GroupScope Global -Path "OU=$nombreou3,DC=andel,DC=local"
+                            Add-ADGroupMember $nombregroup -Members $nombreuser2
+
+                    }
+                }
+                            
+          }
+          
+          "del"{
+
+                foreach ($elemento in gc C:\Users.txt){
+                    if ($elemento.split(",")[0] -eq "del"){
+                          
+                          $delou = $elemento.split(",")[1]
+
+                          $ou = (Get-ADOrganizationalUnit -Filter 'Name -like "*SMIR2*"').DistinguishedName
+                          Remove-ADOrganizationalUnit $ou -Recursive
+                    }
+                }
+
+          }
+
+
+          "create"{
+
+                   $nombreuser3 = (Get-ADUser -Filter *).Name | select -skip 1
+                   $user2 = $user + 1
+
+
+                   foreach($user in $nombreuser3){
+                        
+                        New-Item "C:\$user" -ItemType Directory -Force
+                        mkdir C:\$user\$user2
+                        New-SMBShare –Name $user –Path C:\$user –FullAccess $user
+                    
+                    }
+          }
+
+
+     }
+ }
